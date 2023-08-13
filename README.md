@@ -29,7 +29,8 @@ Galaxy_Morphology_Classification
 │   ├── 📁 images_processed
 │   │   └── *.png (empty after splitting test and train)
 │   ├── 📁 model
-│   │   └── 📁 checkpoints
+│   │   ├── 📁 checkpoints
+│   │   └── 🌠 GalaxyConfidenceModel.keras
 │   ├── 📁 test_images
 │   │   └── *.png
 │   ├── 📁 train_images
@@ -48,6 +49,7 @@ Galaxy_Morphology_Classification
 - Numpy
 - OpenCV
 - Pandas
+- Scikit-learn
 - Tensorflow/Keras
 
 ## Citations
