@@ -100,7 +100,7 @@ Two examples of this process are show below:
 ## Model
 We used a Convolution Neural Network created with Keras and Tensorflow. A slightly modified section of the code is shown below with the different layers, compiling the model and fitting the model. The full code can be found in [model_training.ipynb](model_training.ipynb).
 
-The model takes in 106×106 grayscale (single channel) png files that have been converted to Numpy arrays with values in the range [0, 1].
+The model takes in 106×106 grayscale (single channel) png files that have been converted to Numpy float32 arrays with values in the range [0, 1].
 
 The choices for this model were made to balance _training speed_ vs _correctness_ as it was run on a single laptop on the CPU.
 
@@ -108,13 +108,13 @@ The choices for this model were made to balance _training speed_ vs _correctness
 model = Sequential()
 
 # Add convolution layers
-model.add(Conv2D(32, (2, 2), activation='relu', input_shape=(106, 106, 1)))
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(106, 106, 1)))
 model.add(MaxPooling2D((2, 2)))
 
-model.add(Conv2D(64, (2, 2), activation='relu'))
+model.add(Conv2D(64, (3, 3), activation='relu'))
 model.add(MaxPooling2D((2, 2)))
 
-model.add(Conv2D(128, (2, 2), activation='relu'))
+model.add(Conv2D(128, (3, 3), activation='relu'))
 model.add(MaxPooling2D((2, 2)))
 model.add(Dropout(0.2, seed=RANDOM_STATE))
 
@@ -128,16 +128,16 @@ model.add(Dropout(0.2, seed=RANDOM_STATE))
 model.add(Dense(64, activation='relu'))
 
 # Add the output layer with 37 units (for 37 classes)
-model.add(Dense(37, activation='relu'))
+model.add(Dense(37, activation='sigmoid'))
 
 # --- --- --- ---
 # Compile the model
-model.compile(optimizer='adam', loss='mse', metrics=["mae"])
+model.compile(optimizer='adam', loss='mse', metrics=[RootMeanSquaredError(), r2_score])
 
 # Train the model
 model.fit(X_train_images,
           y_train,
-          epochs=epochs,
+          epochs=EPOCHS,
           callbacks=callbacks_,
           batch_size=2_000,
           validation_split=0.1)
@@ -155,6 +155,15 @@ A variety of callbacks were used during training for various purposes.
     - Reduce the learning rate by a factor of 10 if _loss_ plateaus for 4 epochs
 - CSVLogger
     - Save information on each epoch to a CSV file, continue the file if training is continued later
+
+## Results
+The model was trained for XYZ epochs which took XYZ hr:m:s.
+
+After evaluating the model with 59,817 test images the final values were:
+- Loss (Mean Squared Error): 0._-__
+- Root Mean Squared Error: 0._-__
+
+![Metrics over training time]()
 
 ## Example Images
 Hand selected images that best represent each class.
