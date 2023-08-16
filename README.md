@@ -1,10 +1,10 @@
 # Galaxy Morphology "Classification" (Project 4)
 
-Using a Convolution Neural Network (CNN), we trained a model on tens of thousands of images to make predictions on what people would classify the galaxy as.
+Using a Convolution Neural Network (CNN), we trained a regression model on tens of thousands of images of galaxies to make predictions on what people would classify a galaxy as. This is a regression because we are not directly classifying galaxies, but rather predicting the fraction of people who would classify the galaxy in such a way. 
 
 ## Group Members
 - Zachary Aaronson
-    - Data and model
+    - Data, model, training
 - Kali Schoenrock
     - Presentation
 - Jason Stone
@@ -33,18 +33,19 @@ Galaxy_Morphology_Classification
 │   │   └── *.png (empty after splitting test and train)
 │   ├── 📁 model
 │   │   ├── 📁 checkpoints
-│   │   ├── 🌠 GalaxyConfidenceModel.keras
-│   │   └── 📗 training_log.csv
+│   │   ├── 🌌 GalaxyConfidenceModel.keras
+│   │   └── 📘 training_log.csv
+│   │   └── 📗 Model_Tracking.xlsx
 │   ├── 📁 test_images
 │   │   └── *.png
 │   ├── 📁 train_images
 │   │   └── *.png
 │   ├── 📖 galaxy_data.sqlite
-│   ├── 📗 gz2_filename_mapping.csv
-│   └── 📗 gz2_hart16.csv
+│   ├── 📘 gz2_filename_mapping.csv
+│   └── 📘 gz2_hart16.csv
 ├── 📁 images
 ├── 📔 *.ipynb (3 files)
-├── 📄 README.md 
+├── 📄 README.md
 └── ⚙️ .gitignore
 ```
 
@@ -61,7 +62,7 @@ Galaxy_Morphology_Classification
 Data and images processing code can be found in [data_image_cleaning.ipynb](data_image_cleaning.ipynb).
 
 ### Data
-The data from the two csv files (`gz2_filename_mapping.csv` and `gz2_hart16.csv`) are loaded with the correct data types. Most of the columns from hart16 are skipped as we only want a few interesting columns and the 37 '_debiased' columns that will be the `y` for training our model. Duplicates are found and removed, rows with null values are removed, and the data is merged.
+The data from the two csv files (`gz2_filename_mapping.csv` and `gz2_hart16.csv`) are loaded with the correct data types. Most of the columns from `hart16` are skipped as we only want a few interesting columns and the 37 '_debiased' columns that will be the `y` for training our model. Duplicates are found and removed, rows with null values are removed, and the data is merged.
 
 Next, the `asset_id` column values are compared to the file names of all the JPG the images in `data\images\`. Rows that do not have a corresponding image are removed and images that do not have a row of data will not be processed in later steps.
 
@@ -98,12 +99,23 @@ Two examples of this process are show below:
 ![Example of image processing 2](/images/process_image_ex_2.png)
 
 ## Model
-We used a Convolution Neural Network created with Keras and Tensorflow. A slightly modified section of the code is shown below with the different layers, compiling the model and fitting the model. The full code can be found in [model_training.ipynb](model_training.ipynb).
+We used a Convolution Neural Network created with Keras and Tensorflow. A slightly modified section of the code is shown below with the different layers, compiling the model and fitting the model. The full code can be found in [model_training.ipynb](model_training.ipynb). A separate `.py` file was created to run the model directly from the console in an effort to minimize any other processes running during training. It contains only the code necessary to load the data and images, then train the model (new or continue) and save it. All adjustable values are the same between the two files. This file was used to create the final model and can be found at [model_training.py](model_training.py).
 
-The model takes in 106×106 grayscale (single channel) png files that have been converted to Numpy float32 arrays with values in the range [0, 1].
+The model takes in 106×106 grayscale (single channel) png files that have been converted to Numpy arrays with values in the range [0, 1]. Originally the arrays were `float64` but were cast to `float32` to half the memory usage. For the _training data_, this array is saved as a `.npy` in [training_images_array.npy](data/training_images_array.npy) so training can begin quicker without having to load each of the 179,450 images.
 
-The choices for this model were made to balance _training speed_ vs _correctness_ as it was run on a single laptop on the CPU.
+A custom R² metric was created as the build in keras version only works with tensorflow 2.13.0 or higher and caused other errors.
+```py
+def r2_score(y_true, y_pred):
+    SS_res = tf.reduce_sum(tf.square(y_true - y_pred)) 
+    SS_tot = tf.reduce_sum(tf.square(y_true - tf.reduce_mean(y_true))) 
+    return (1 - SS_res/(SS_tot + tf.keras.backend.epsilon()))
+```
 
+Testing out different combinations on a smaller set of data for short epochs is documented in [Model_Tracking.xlsx](data/model/Model_Tracking.xlsx).
+
+The choices for this model were made to balance _training speed_ vs _"accuracy"_ as it was run on a single laptop on the CPU.
+
+### Code for CNN Model
 ```py
 model = Sequential()
 
@@ -137,7 +149,7 @@ model.compile(optimizer='adam', loss='mse', metrics=[RootMeanSquaredError(), r2_
 # Train the model
 model.fit(X_train_images,
           y_train,
-          epochs=EPOCHS,
+          epochs=120,
           callbacks=callbacks_,
           batch_size=2_000,
           validation_split=0.1)
@@ -148,22 +160,51 @@ A variety of callbacks were used during training for various purposes.
 - ModelCheckpoint
     - Saves the weights every epoch
 - EarlyStopping
-    - End the training if _loss_ is stagnant for 6 epochs
+    - End the training if _loss_ is stagnant for 7 epochs
 - LearningRateScheduler
     - Reduce the learning rate every 10 epochs by 0.8
 - ReduceLROnPlateau
-    - Reduce the learning rate by a factor of 10 if _loss_ plateaus for 4 epochs
+    - Reduce the learning rate by a factor of 10 if _loss_ plateaus for 5 epochs
 - CSVLogger
     - Save information on each epoch to a CSV file, continue the file if training is continued later
+    - This file can be found at [training_log.csv](data/model/training_log.csv).
 
 ## Results
-The model was trained for XYZ epochs which took XYZ hr:m:s.
+The model was trained on a `Windows 10 i7-6700HQ 2.60 GHz 16 GB RAM Dell Laptop` for **120** epochs in two parts which took a total time of **xx hours, yy minutes, zz seconds**. We would like to thank this six year old laptop for its slow but steady, hot and intensive work to save the newer, 3x faster baby laptop from having to do it.
 
-After evaluating the model with 59,817 test images the final values were:
+After evaluating the model with 59,817 test images the final metrics were:
 - Loss (Mean Squared Error): 0._-__
 - Root Mean Squared Error: 0._-__
+- R² Score: 0._-__
+
+Overall, these results were decent and could be improved. For our first time with with a CNN, little experience with neural networks and less than two weeks, it was pretty good.
+
+The final model can be found here: [GalaxyConfidenceModel.keras](data/model/GalaxyConfidenceModel.keras)
+- Note: to load the model you will need to use the following where `r2_score` is the above custom R² function:
+     ```py
+     load_model("data/model/GalaxyConfidenceModel.keras", custom_objects={'r2_score': r2_score})
+     ```
 
 ![Metrics over training time]()
+
+### Improvements
+Possible improvements that can be made but we did not have time to do or did not know how to complete:
+- Use full color images (3 channels)
+- Data augmentation
+    - rotate and mirror images to increase training size
+- Load training images in batches so there is not an 8GB array of images
+- Use a GPU (not supported on Windows with tensorflow 2.11+)
+- Change layer properties, add more layers
+    - `BatchNormalization`
+    - More `Dropout` layers, these had a significant effect on training time
+- Use class or sample weights
+- Use a custom output layer that would guarantee sections of predictions were either 0 or summed to 1.0
+    - Example would be to use 'softmax' on the first 3 outputs as they are answers to 1 question.
+- Use an ensemble of models
+- Use a hierarchy of CNN models for each of the 11 questions in the tree.
+    - Would need to determine which images should be used for each model
+    - A prediction would then use conditionals to output a result
+    - Would be more difficult to test/evaluate
 
 ## Example Images
 Hand selected images that best represent each class.
@@ -176,3 +217,4 @@ Hand selected images that best represent each class.
 - Hart et al. (2016, MNRAS, 461, 3663, DOI: [10.1093/mnras/stw1588](https://doi.org/10.1093/mnras/stw1588))
     - Debiased data
 - Sky Map [https://in-the-sky.org/data/constellations_map.php](https://in-the-sky.org/data/constellations_map.php?latitude=37.1305&longitude=-113.5083&timezone=-07%3A00)
+- Other Galaxy Images from Hubble Space Telescope
