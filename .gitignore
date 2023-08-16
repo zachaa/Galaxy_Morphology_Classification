@@ -138,5 +138,22 @@ Thumbs.db
 package.json
 api_keys.py
 
-data/
+# ignore most of data/ directory
+# many file here are too big for github or too numerous
+# they should be downloaded directly from their source or generated
+data/images
+data/images_processed
+data/test_images
+data/train_images
+data/galaxy_data.sqlite
+data/gz2_filename_mapping.csv
+data/gz2_hart16.csv
+data/training_images_array.npy
+
+# Allow some items in data/ directory
+data/model/*
+!data/model/GalaxyConfidenceModel.keras
+!data/model/Model_Tracking.xlsx
+!data/model/training_log.csv
+
 test_and_other/

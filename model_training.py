@@ -123,6 +123,7 @@ def run_training(starting_epoch: int = 0, ending_epoch: int = 50):
     if starting_epoch == 0:
         callbacks_ = [checkpoints, early_stopping, lr_scheduler, reduce_lr_plateau, csv_logger_start]
     else:
+        logging.info("Setting callbacks to use csv_logger_resume")
         callbacks_ = [checkpoints, early_stopping, lr_scheduler, reduce_lr_plateau, csv_logger_resume]
 
     def r2_score(y_true, y_pred):
@@ -169,7 +170,7 @@ def run_training(starting_epoch: int = 0, ending_epoch: int = 50):
         model.compile(optimizer='adam', loss='mse', metrics=[RootMeanSquaredError(), r2_score])  # mse=mean_squared_error
     else:
         # Load already existing model to continue training
-        model = load_model("data/model/GalaxyConfidenceModel.keras", custom_objects={"r2_score", r2_score})
+        model = load_model("data/model/GalaxyConfidenceModel.keras", custom_objects={"r2_score": r2_score})
         logging.info("Model loaded.")
 
     logging.info(f"{model.summary()}")
@@ -227,5 +228,5 @@ def run_training(starting_epoch: int = 0, ending_epoch: int = 50):
 
 if __name__ == "__main__":
     logging.info("Starting program.")
-    run_training(starting_epoch=0, ending_epoch=50)
+    run_training(starting_epoch=0, ending_epoch=120)
     logging.info("Program complete.")
