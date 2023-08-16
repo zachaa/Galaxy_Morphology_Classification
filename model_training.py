@@ -1,6 +1,6 @@
-import sys
 import logging
 import sqlite3
+import sys
 import time
 from pathlib import Path
 
@@ -169,7 +169,7 @@ def run_training(starting_epoch: int = 0, ending_epoch: int = 50):
         model.compile(optimizer='adam', loss='mse', metrics=[RootMeanSquaredError(), r2_score])  # mse=mean_squared_error
     else:
         # Load already existing model to continue training
-        model = load_model("data/model/GalaxyConfidenceModel.keras")
+        model = load_model("data/model/GalaxyConfidenceModel.keras", custom_objects={"r2_score", r2_score})
         logging.info("Model loaded.")
 
     logging.info(f"{model.summary()}")
